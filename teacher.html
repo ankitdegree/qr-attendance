@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Teacher Dashboard</title>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- QR Generator -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+
+<body>
+
+    <h1>Teacher Dashboard</h1>
+
+    <h2>Create Attendance</h2>
+
+    <label>Subject</label>
+    <br>
+
+    <input
+        type="text"
+        id="subject"
+        placeholder="Example: Operating Systems"
+    >
+
+    <br><br>
+
+    <label>Class</label>
+    <br>
+
+    <input
+        type="text"
+        id="className"
+        value="FY B.Sc. Cyber Security & Digital Forensics"
+    >
+
+    <br><br>
+
+    <label>QR Duration</label>
+    <br>
+
+    <select id="duration">
+
+        <option value="2">
+            2 minutes
+        </option>
+
+        <option value="5" selected>
+            5 minutes
+        </option>
+
+        <option value="10">
+            10 minutes
+        </option>
+
+    </select>
+
+    <br><br>
+
+    <button onclick="generateQR()">
+        GENERATE QR
+    </button>
+
+    <hr>
+
+    <div id="status"></div>
+
+    <div id="qrArea"></div>
+
+    <br>
+
+    <button onclick="window.location.href='index.html'">
+        Back
+    </button>
+
+
+    <script src="config.js"></script>
+
+    <script>
+
+        const supabaseClient = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_KEY
+        );
+
+
+        async function generateQR() {
+
+            const subject =
+                document.getElementById("subject").value.trim();
+
+            const className =
+                document.getElementById("className").value.trim();
+
+            const duration =
+                parseInt(
+                    document.getElementById("duration").value
+                );
+
+
+            if (!subject) {
+
+                alert("Please enter the subject.");
+
+                return;
+            }
+
+
+            document.getElementById("status").innerText =
+                "Creating attendance session...";
+
+
+            const { data, error } =
+                await supabaseClient.rpc(
+                    "create_attendance_session",
+                    {
+                        p_subject: subject,
+                        p_class_name: className,
+                        p_duration_minutes: duration
+                    }
+                );
+
+
+            if (error) {
+
+                console.error(error);
+
+                document.getElementById("status").innerText =
+                    "Error: " + error.message;
+
+                return;
+            }
+
+
+            if (!data || !data.success) {
+
+                document.getElementById("status").innerText =
+                    "Could not create attendance session.";
+
+                return;
+            }
+
+
+            const token = data.qr_token;
+
+
+            /*
+             * Student page URL.
+             *
+             * This will work properly once we host
+             * the website online.
+             */
+
+            const studentURL =
+    "http://172.20.10.7:5500/student.html?token=" +
+    encodeURIComponent(token);
+
+
+            document.getElementById("qrArea").innerHTML = "";
+
+
+            new QRCode(
+                document.getElementById("qrArea"),
+                {
+                    text: studentURL,
+                    width: 300,
+                    height: 300
+                }
+            );
+
+
+            const expiry =
+                new Date(data.expires_at);
+
+
+            document.getElementById("status").innerHTML =
+                `
+                <h3>✅ Attendance is LIVE</h3>
+
+                <p>
+                    <strong>Subject:</strong>
+                    ${subject}
+                </p>
+
+                <p>
+                    <strong>Expires:</strong>
+                    ${expiry.toLocaleTimeString()}
+                </p>
+
+                <p>
+                    Students can scan the QR code.
+                </p>
+                `;
+
+        }
+
+    </script>
+
+</body>
+
+</html>

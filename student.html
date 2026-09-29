@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Mark Attendance</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+    <h1>Mark Attendance</h1>
+
+    <p id="status">Enter your roll number</p>
+
+    <input
+        type="text"
+        id="rollNo"
+        placeholder="Example: FSCS26079"
+    >
+
+    <br><br>
+
+    <button onclick="markAttendance()">
+        MARK ATTENDANCE
+    </button>
+
+    <div id="result"></div>
+
+    <script src="config.js"></script>
+
+    <script>
+
+        const supabaseClient = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_KEY
+        );
+
+        const params = new URLSearchParams(
+            window.location.search
+        );
+
+        const token = params.get("token");
+
+
+        async function markAttendance() {
+
+            const rollNo =
+                document.getElementById("rollNo")
+                .value
+                .trim()
+                .toUpperCase();
+
+
+            if (!token) {
+
+                document.getElementById("result").innerHTML =
+                    "<h3>❌ Invalid QR code</h3>";
+
+                return;
+            }
+
+
+            if (!rollNo) {
+
+                alert("Please enter your roll number.");
+
+                return;
+            }
+
+
+            document.getElementById("result").innerHTML =
+                "Checking attendance...";
+
+
+            const { data, error } =
+                await supabaseClient.rpc(
+                    "mark_attendance",
+                    {
+                        p_qr_token: token,
+                        p_roll_no: rollNo
+                    }
+                );
+
+
+            if (error) {
+
+                console.error(error);
+
+                document.getElementById("result").innerHTML =
+                    "<h3>❌ Something went wrong</h3>";
+
+                return;
+            }
+
+
+            if (!data.success) {
+
+                document.getElementById("result").innerHTML =
+                    `<h3>❌ ${data.message}</h3>`;
+
+                return;
+            }
+
+
+            document.getElementById("result").innerHTML =
+                `
+                <h2>✅ Attendance Marked</h2>
+
+                <p>
+                    <strong>${data.student}</strong>
+                </p>
+
+                <p>
+                    Roll No: ${data.roll_no}
+                </p>
+                `;
+
+        }
+
+    </script>
+
+</body>
+
+</html>
